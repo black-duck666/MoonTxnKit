@@ -8,6 +8,6 @@ repository = "https://github.com/black-duck666/MoonTxnKit"
 
 license = "Apache-2.0"
 
-keywords = ["mvcc", "transaction", "snapshot", "wal", "recovery"]
+keywords = [ "mvcc", "transaction", "snapshot", "wal", "recovery" ]
 
 description = "Deterministic MVCC transactions and logical recovery for MoonBit."
