@@ -230,6 +230,26 @@ fn Engine::latest_version_for(self : Engine, key : String) -> Int {
 }
 
 ///|
+fn Transaction::validate_serializable(self : Transaction) -> TxnConflict? {
+  if self.isolation != IsolationLevel::Serializable {
+    return None
+  }
+  for read in self.reads {
+    let latest = self.engine.latest_version_for(read.key)
+    if latest > self.snapshot_version {
+      return Some({
+        kind: ConflictKind::ReadWrite,
+        key: read.key,
+        snapshot_version: self.snapshot_version,
+        current_version: latest,
+        message: "read key changed after transaction snapshot",
+      })
+    }
+  }
+  None
+}
+
+///|
 pub fn Transaction::commit(self : Transaction) -> CommitResult {
   if self.state != TxnState::Active {
     return CommitResult::Rejected({
@@ -250,6 +270,16 @@ pub fn Transaction::commit(self : Transaction) -> CommitResult {
         "key changed after transaction snapshot",
       )
     }
+  }
+  match self.validate_serializable() {
+    Some(conflict) =>
+      return self.reject(
+        conflict.kind,
+        conflict.key,
+        conflict.current_version,
+        conflict.message,
+      )
+    None => ()
   }
   let commit_version = if self.writes.length() == 0 {
     self.engine.current_version
