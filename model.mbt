@@ -43,6 +43,8 @@ pub(all) struct Savepoint {
   name : String
   write_count : Int
   read_count : Int
+  writes : Array[WriteIntent]
+  reads : Array[ReadObservation]
 } derive(Debug, Eq)
 
 ///|

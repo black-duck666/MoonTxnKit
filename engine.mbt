@@ -212,6 +212,8 @@ pub fn Transaction::savepoint(self : Transaction, name : String) -> Bool {
     name,
     write_count: self.writes.length(),
     read_count: self.reads.length(),
+    writes: self.writes.copy(),
+    reads: self.reads.copy(),
   })
   true
 }
@@ -225,8 +227,14 @@ pub fn Transaction::rollback_to(self : Transaction, name : String) -> Bool {
   while index >= 0 {
     let savepoint = self.savepoints[index]
     if savepoint.name == name {
-      self.writes.truncate(savepoint.write_count)
-      self.reads.truncate(savepoint.read_count)
+      self.writes.clear()
+      for write in savepoint.writes {
+        self.writes.push(write)
+      }
+      self.reads.clear()
+      for read in savepoint.reads {
+        self.reads.push(read)
+      }
       self.savepoints.truncate(index + 1)
       return true
     }
