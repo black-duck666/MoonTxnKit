@@ -202,6 +202,62 @@ pub fn Transaction::pending_writes(self : Transaction) -> Int {
 }
 
 ///|
+pub fn Transaction::savepoint(self : Transaction, name : String) -> Bool {
+  if self.state != TxnState::Active || name.length() == 0 {
+    return false
+  }
+  self.savepoints.push({
+    name,
+    write_count: self.writes.length(),
+    read_count: self.reads.length(),
+  })
+  true
+}
+
+///|
+pub fn Transaction::rollback_to(self : Transaction, name : String) -> Bool {
+  if self.state != TxnState::Active {
+    return false
+  }
+  let mut index = self.savepoints.length() - 1
+  while index >= 0 {
+    let savepoint = self.savepoints[index]
+    if savepoint.name == name {
+      self.writes.truncate(savepoint.write_count)
+      self.reads.truncate(savepoint.read_count)
+      self.savepoints.truncate(index + 1)
+      return true
+    }
+    index = index - 1
+  }
+  false
+}
+
+///|
+pub fn Transaction::release_savepoint(
+  self : Transaction,
+  name : String,
+) -> Bool {
+  if self.state != TxnState::Active {
+    return false
+  }
+  let mut index = self.savepoints.length() - 1
+  while index >= 0 {
+    if self.savepoints[index].name == name {
+      ignore(self.savepoints.remove(index))
+      return true
+    }
+    index = index - 1
+  }
+  false
+}
+
+///|
+pub fn Transaction::savepoint_count(self : Transaction) -> Int {
+  self.savepoints.length()
+}
+
+///|
 fn Transaction::reject(
   self : Transaction,
   kind : ConflictKind,
