@@ -6,6 +6,7 @@ pub struct Engine {
   active_snapshots : Map[Int, Int]
   mut committed_transactions : Int
   mut aborted_transactions : Int
+  wal_records : Array[WalRecord]
 }
 
 ///|
@@ -29,6 +30,7 @@ pub fn Engine::new() -> Engine {
     active_snapshots: {},
     committed_transactions: 0,
     aborted_transactions: 0,
+    wal_records: [],
   }
 }
 
@@ -343,6 +345,14 @@ pub fn Transaction::commit(self : Transaction) -> CommitResult {
     self.engine.current_version + 1
   }
   if self.writes.length() > 0 {
+    self.engine.wal_records.push(
+      WalRecord::new(
+        self.id,
+        self.snapshot_version,
+        commit_version,
+        self.writes,
+      ),
+    )
     self.engine.current_version = commit_version
     for write in self.writes {
       let history = match self.engine.histories.get(write.key) {
@@ -357,6 +367,11 @@ pub fn Transaction::commit(self : Transaction) -> CommitResult {
   ignore(self.engine.active_snapshots.remove(self.id))
   self.engine.committed_transactions = self.engine.committed_transactions + 1
   CommitResult::CommittedAt(commit_version)
+}
+
+///|
+pub fn Engine::wal(self : Engine) -> Array[WalRecord] {
+  self.wal_records.copy()
 }
 
 ///|
