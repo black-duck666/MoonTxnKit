@@ -1,0 +1,41 @@
+name: MoonTxnKit CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  moonbit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MoonBit
+        uses: hustcer/setup-moonbit@v1
+
+      - name: Format check
+        run: moon fmt --check
+
+      - name: Compile
+        run: moon check
+
+      - name: Test default backend
+        run: moon test
+
+      - name: Test JavaScript backend
+        run: moon test --target js
+
+      - name: Test WebAssembly backend
+        run: moon test --target wasm
+
+      - name: Test Wasm GC backend
+        run: moon test --target wasm-gc
+
+      - name: Run transaction demo
+        run: moon run cmd/main
