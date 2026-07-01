@@ -1,0 +1,7 @@
+import {
+  "black-duck666/moontxnkit" @txn,
+}
+
+options(
+  "is-main": true,
+)
