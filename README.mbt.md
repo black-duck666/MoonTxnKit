@@ -1,6 +1,6 @@
 # MoonTxnKit
 
-MoonTxnKit 是面向 MoonBit 的确定性 MVCC 事务与逻辑恢复基础库。它为内存状态、模拟器、规则引擎、测试替身和嵌入式工具提供快照读取、乐观提交、可串行化读集校验、保存点、逻辑 WAL、幂等重放和安全版本压缩。
+MoonTxnKit 是面向 MoonBit 的确定性状态事务与恢复内核。它为工作流调度器、内存服务、模拟器、规则引擎、测试替身和嵌入式工具提供声明式原子状态计划、快照读取、乐观提交、可串行化读集校验、保存点、逻辑 WAL、幂等重放和安全版本压缩。
 
 项目不是 SQL 数据库，也不绑定磁盘、线程或网络。核心只维护逻辑版本和可序列化记录，调用方可以自行选择文件、浏览器存储、对象存储或数据库作为 WAL 持久化层。
 
@@ -22,12 +22,12 @@ MoonTxnKit 是面向 MoonBit 的确定性 MVCC 事务与逻辑恢复基础库。
 ```moonbit nocheck
 let engine = @moontxnkit.Engine::new()
 
-let txn = engine.begin(
-  isolation=@moontxnkit.IsolationLevel::Serializable,
-)
-ignore(txn.put("account-a", "70"))
-ignore(txn.put("account-b", "130"))
-let result = txn.commit()
+let plan = @moontxnkit.AtomicPlan::new("claim-task")
+  .expect("task:42:state", "queued")
+  .expect_missing("task:42:owner")
+  .put("task:42:state", "running")
+  .put("task:42:owner", "worker-7")
+let result = engine.execute(plan)
 
 println(result.to_json())
 println(engine.stats().to_json())
@@ -46,7 +46,7 @@ moon test
 moon run cmd/main
 ```
 
-当前共有 17 项确定性测试。CLI 展示银行转账、长快照读取、并发写拒绝、历史版本、WAL 重放和低水位压缩。
+当前共有 23 项确定性测试。CLI 展示银行转账、长快照读取、并发写拒绝、历史版本、WAL 重放和低水位压缩；AtomicPlan 测试覆盖任务领取、库存预占、幂等消费和受保护删除。
 
 ## 设计边界
 
@@ -55,4 +55,4 @@ moon run cmd/main
 ## 仓库
 
 - GitHub: <https://github.com/black-duck666/MoonTxnKit>
-- GitLink: 待创建后填写
+- GitLink: <https://www.gitlink.org.cn/black-duck/MoonTxnKit>

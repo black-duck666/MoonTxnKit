@@ -2,6 +2,13 @@
 
 MoonTxnKit 采用五个职责清晰的层次。
 
+## 领域原子计划
+
+`atomic_plan.mbt` 提供面向工作流、规则引擎和内存服务的声明式入口。
+`AtomicPlan` 把业务前置条件和整批写集合交给引擎；`Engine::execute` 在同一
+Serializable 快照检查条件，再提交所有变更。业务条件不满足返回
+`ConditionFailed`，并发验证失败返回 `CommitRejected`，两类失败不会混淆。
+
 ## 领域模型
 
 `model.mbt` 定义隔离级别、事务状态、版本值、读写集合、保存点、冲突和提交结果。模型不依赖引擎实现。

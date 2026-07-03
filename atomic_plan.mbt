@@ -61,10 +61,7 @@ pub fn AtomicPlan::expect_missing(
 }
 
 ///|
-fn AtomicPlan::replace_write(
-  self : AtomicPlan,
-  intent : WriteIntent,
-) -> Unit {
+fn AtomicPlan::replace_write(self : AtomicPlan, intent : WriteIntent) -> Unit {
   for index, write in self.writes {
     if write.key == intent.key {
       self.writes[index] = intent

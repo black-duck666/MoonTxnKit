@@ -18,9 +18,7 @@ test "atomic plan claims queued workflow task once" {
     .expect_missing("task:42:owner")
     .put("task:42:state", "running")
     .put("task:42:owner", "worker-7")
-  assert_true(
-    engine.execute(plan) == @moontxnkit.PlanResult::AppliedAt(2),
-  )
+  assert_true(engine.execute(plan) == @moontxnkit.PlanResult::AppliedAt(2))
   assert_true(engine.get("task:42:state") == Some("running"))
   assert_true(engine.get("task:42:owner") == Some("worker-7"))
 }
@@ -61,9 +59,7 @@ test "inventory reservation commits related keys at one version" {
     .put("inventory:sku-1", "4")
     .put("order:9:state", "reserved")
     .put("order:9:reservation", "sku-1")
-  assert_true(
-    engine.execute(plan) == @moontxnkit.PlanResult::AppliedAt(2),
-  )
+  assert_true(engine.execute(plan) == @moontxnkit.PlanResult::AppliedAt(2))
   assert_eq(engine.history("inventory:sku-1")[1].version, 2)
   assert_eq(engine.history("order:9:state")[1].version, 2)
   assert_eq(engine.history("order:9:reservation")[0].version, 2)
@@ -76,9 +72,7 @@ test "plan can guard and delete idempotency marker" {
   let plan = @moontxnkit.AtomicPlan::new("release-lease")
     .expect("job:token", "leased")
     .delete("job:token")
-  assert_true(
-    engine.execute(plan) == @moontxnkit.PlanResult::AppliedAt(2),
-  )
+  assert_true(engine.execute(plan) == @moontxnkit.PlanResult::AppliedAt(2))
   assert_true(engine.get("job:token") is None)
 }
 
@@ -99,17 +93,16 @@ test "condition failure has stable JSON evidence" {
   let engine = @moontxnkit.Engine::new()
   let result = engine.execute(
     @moontxnkit.AtomicPlan::new("deduplicate")
-      .expect_missing("event:7")
-      .put("event:7", "processed"),
+    .expect_missing("event:7")
+    .put("event:7", "processed"),
   )
   assert_true(
-    result.to_json() ==
-    "{\"status\":\"applied\",\"commit_version\":1}",
+    result.to_json() == "{\"status\":\"applied\",\"commit_version\":1}",
   )
   let rejected = engine.execute(
     @moontxnkit.AtomicPlan::new("deduplicate")
-      .expect_missing("event:7")
-      .put("event:7", "processed-again"),
+    .expect_missing("event:7")
+    .put("event:7", "processed-again"),
   )
   assert_true(rejected.to_json().contains("\"status\":\"condition_failed\""))
   assert_true(rejected.to_json().contains("\"plan\":\"deduplicate\""))
