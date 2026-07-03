@@ -8,6 +8,13 @@ repository = "https://github.com/black-duck666/MoonTxnKit"
 
 license = "Apache-2.0"
 
-keywords = [ "mvcc", "transaction", "atomic-state", "workflow", "wal", "recovery" ]
+keywords = [
+  "mvcc",
+  "transaction",
+  "atomic-state",
+  "workflow",
+  "wal",
+  "recovery",
+]
 
 description = "Deterministic atomic state transitions, MVCC transactions and logical recovery for MoonBit."
