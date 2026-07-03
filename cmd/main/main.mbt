@@ -35,6 +35,22 @@ fn main {
   println("first_writer=" + first.commit().to_json())
   println("second_writer=" + second.commit().to_json())
 
+  let task_seed = engine.begin()
+  ignore(task_seed.put("task:42:state", "queued"))
+  ignore(task_seed.commit())
+  let claim = @txn.AtomicPlan::new("claim-task")
+    .expect("task:42:state", "queued")
+    .expect_missing("task:42:owner")
+    .put("task:42:state", "running")
+    .put("task:42:owner", "worker-7")
+  println("claim_task=" + engine.execute(claim).to_json())
+  let duplicate_claim = @txn.AtomicPlan::new("claim-task")
+    .expect("task:42:state", "queued")
+    .expect_missing("task:42:owner")
+    .put("task:42:state", "running")
+    .put("task:42:owner", "worker-8")
+  println("duplicate_claim=" + engine.execute(duplicate_claim).to_json())
+
   println("history=" + engine.history_json("account-a"))
   println("stats=" + engine.stats().to_json())
 
