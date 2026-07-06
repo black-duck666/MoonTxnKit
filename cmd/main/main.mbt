@@ -51,6 +51,14 @@ fn main {
     .put("task:42:owner", "worker-8")
   println("duplicate_claim=" + engine.execute(duplicate_claim).to_json())
 
+  let slot_reader = engine.begin(isolation=@txn.IsolationLevel::Serializable)
+  println("available_slots_before=\{slot_reader.scan_prefix("slot:").length()}")
+  let slot_writer = engine.begin()
+  ignore(slot_writer.put("slot:a", "reserved"))
+  println("reserve_slot=" + slot_writer.commit().to_json())
+  ignore(slot_reader.put("audit:slot-scan", "observed-empty"))
+  println("phantom_guard=" + slot_reader.commit().to_json())
+
   println("history=" + engine.history_json("account-a"))
   println("stats=" + engine.stats().to_json())
 
