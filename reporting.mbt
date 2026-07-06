@@ -3,6 +3,7 @@ fn conflict_kind_name(kind : ConflictKind) -> String {
   match kind {
     ConflictKind::WriteWrite => "write_write"
     ConflictKind::ReadWrite => "read_write"
+    ConflictKind::PredicateWrite => "predicate_write"
     ConflictKind::InvalidState => "invalid_state"
     ConflictKind::InvalidSavepoint => "invalid_savepoint"
     ConflictKind::CorruptWal => "corrupt_wal"

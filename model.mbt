@@ -15,6 +15,7 @@ pub(all) enum TxnState {
 pub(all) enum ConflictKind {
   WriteWrite
   ReadWrite
+  PredicateWrite
   InvalidState
   InvalidSavepoint
   CorruptWal
@@ -39,12 +40,24 @@ pub(all) struct ReadObservation {
 } derive(Debug, Eq)
 
 ///|
+pub(all) struct PrefixObservation {
+  prefix : String
+} derive(Debug, Eq)
+
+///|
+pub(all) struct KeyValue {
+  key : String
+  value : String
+} derive(Debug, Eq)
+
+///|
 pub(all) struct Savepoint {
   name : String
   write_count : Int
   read_count : Int
   writes : Array[WriteIntent]
   reads : Array[ReadObservation]
+  prefix_reads : Array[PrefixObservation]
 } derive(Debug, Eq)
 
 ///|

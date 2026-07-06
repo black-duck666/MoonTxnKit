@@ -18,6 +18,7 @@ pub struct Transaction {
   mut state : TxnState
   writes : Array[WriteIntent]
   reads : Array[ReadObservation]
+  prefix_reads : Array[PrefixObservation]
   savepoints : Array[Savepoint]
 }
 
@@ -55,6 +56,7 @@ pub fn Engine::begin(
     state: TxnState::Active,
     writes: [],
     reads: [],
+    prefix_reads: [],
     savepoints: [],
   }
 }
@@ -166,6 +168,73 @@ pub fn Transaction::get(self : Transaction, key : String) -> String? {
 }
 
 ///|
+fn Transaction::record_prefix_read(self : Transaction, prefix : String) -> Unit {
+  for observation in self.prefix_reads {
+    if observation.prefix == prefix {
+      return
+    }
+  }
+  self.prefix_reads.push({ prefix, })
+}
+
+///|
+fn upsert_scan_entry(
+  entries : Array[KeyValue],
+  key : String,
+  value : String?,
+) -> Unit {
+  for index, entry in entries {
+    if entry.key == key {
+      match value {
+        Some(next) => entries[index] = { key, value: next }
+        None => ignore(entries.remove(index))
+      }
+      return
+    }
+  }
+  match value {
+    Some(next) => entries.push({ key, value: next })
+    None => ()
+  }
+}
+
+///|
+/// Returns a stable, sorted prefix view at the transaction snapshot.
+///
+/// Pending writes are overlaid so a transaction observes its own inserts,
+/// updates, and deletes. Serializable transactions validate the whole prefix
+/// at commit time to detect phantoms.
+pub fn Transaction::scan_prefix(
+  self : Transaction,
+  prefix : String,
+) -> Array[KeyValue] {
+  let entries : Array[KeyValue] = []
+  if self.state != TxnState::Active {
+    return entries
+  }
+  self.record_prefix_read(prefix)
+  for key, history in self.engine.histories {
+    if key.has_prefix(prefix) {
+      match history_read_at(history, self.snapshot_version) {
+        Some(versioned) =>
+          match versioned.value {
+            Some(value) => entries.push({ key, value })
+            None => ()
+          }
+        None => ()
+      }
+    }
+  }
+  for write in self.writes {
+    if write.key.has_prefix(prefix) {
+      upsert_scan_entry(entries, write.key, write.value)
+    }
+  }
+  entries.sort_by(fn(left, right) { left.key.lexical_compare(right.key) })
+  entries
+}
+
+///|
 fn Transaction::replace_write(self : Transaction, intent : WriteIntent) -> Unit {
   for index, write in self.writes {
     if write.key == intent.key {
@@ -214,6 +283,7 @@ pub fn Transaction::savepoint(self : Transaction, name : String) -> Bool {
     read_count: self.reads.length(),
     writes: self.writes.copy(),
     reads: self.reads.copy(),
+    prefix_reads: self.prefix_reads.copy(),
   })
   true
 }
@@ -234,6 +304,10 @@ pub fn Transaction::rollback_to(self : Transaction, name : String) -> Bool {
       self.reads.clear()
       for read in savepoint.reads {
         self.reads.push(read)
+      }
+      self.prefix_reads.clear()
+      for observation in savepoint.prefix_reads {
+        self.prefix_reads.push(observation)
       }
       self.savepoints.truncate(index + 1)
       return true
@@ -310,6 +384,20 @@ fn Transaction::validate_serializable(self : Transaction) -> TxnConflict? {
         current_version: latest,
         message: "read key changed after transaction snapshot",
       })
+    }
+  }
+  for observation in self.prefix_reads {
+    for key, history in self.engine.histories {
+      if key.has_prefix(observation.prefix) &&
+        history_latest_version(history) > self.snapshot_version {
+        return Some({
+          kind: ConflictKind::PredicateWrite,
+          key,
+          snapshot_version: self.snapshot_version,
+          current_version: history_latest_version(history),
+          message: "prefix gained a new committed version after transaction snapshot",
+        })
+      }
     }
   }
   None
