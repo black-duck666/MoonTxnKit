@@ -1,20 +1,15 @@
-# 能力证据
+# 验证证据
 
-| 能力 | 公开接口 | 回归测试 |
-| --- | --- | --- |
-| 声明式原子迁移 | `AtomicPlan`、`Engine::execute` | workflow, inventory, idempotency |
-| 快照读取 | `begin`、`get`、`read_at` | repeatable snapshot |
-| 写写冲突 | `commit` | concurrent writes |
-| 写偏斜阻断 | `IsolationLevel::Serializable` | prevents write skew |
-| 保存点 | `savepoint`、`rollback_to`、`release_savepoint` | savepoint rollback |
-| WAL | `wal`、`WalRecord::is_valid` | checksum and operations |
-| 恢复 | `recover`、`replay` | reconstructs values |
-| 幂等重放 | `replay` | replaying same wal |
-| 损坏拒绝 | `ReplayReport` | corrupted wal |
-| 版本压缩 | `compact` | oldest active snapshot |
-| 健康检查 | `stats`、`validate` | engine health |
+当前 30 项确定性测试覆盖：
 
-验证命令：`moon fmt --check`、`moon check`、`moon test`、`moon test --target js`、`moon test --target wasm`、`moon test --target wasm-gc`、`moon run cmd/main`。
+- 快照重复读、读己之写、写写冲突和删除墓碑；
+- Serializable 点读冲突；
+- 前缀扫描稳定排序和命名空间隔离；
+- 前缀扫描中的事务内新增、更新和删除；
+- 并发插入、修改和删除造成的谓词冲突；
+- Snapshot 与 Serializable 的对照行为；
+- 保存点对写集、读集和谓词读集合的回滚；
+- AtomicPlan、WAL 校验、幂等恢复和版本压缩。
 
-当前共有 23 项确定性测试。项目价值与适用对象见
-[`VALUE_PROPOSITION.md`](VALUE_PROPOSITION.md)。
+万键工作负载真实构造 10,000 个库存键，执行稳定前缀扫描、并发幻读、结构化
+冲突、WAL 恢复和内部一致性校验。它报告工作量与结果，不伪造吞吐率。
