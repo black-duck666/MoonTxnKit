@@ -163,3 +163,26 @@ test "stats and validation summarize engine health" {
   assert_eq(engine.validate().length(), 0)
   assert_true(stats.to_json().contains("\"keys\":2"))
 }
+
+///|
+test "checkpoint snapshot restores committed MVCC state without active handles" {
+  let source = @moontxnkit.Engine::new()
+  let first = source.begin()
+  ignore(first.put("task:1", "queued"))
+  ignore(first.commit())
+  let second = source.begin()
+  ignore(second.put("task:1", "running"))
+  ignore(second.put("task:2", "queued"))
+  ignore(second.commit())
+  let open = source.begin()
+  ignore(open.put("uncommitted", "never-persisted"))
+  let restored = @moontxnkit.Engine::from_snapshot(source.snapshot())
+  assert_eq(restored.version(), 2)
+  assert_true(restored.get("task:1") == Some("running"))
+  assert_true(restored.read_at("task:1", 1) == Some("queued"))
+  assert_true(restored.get("task:2") == Some("queued"))
+  assert_true(restored.get("uncommitted") is None)
+  assert_eq(restored.stats().active_transactions, 0)
+  assert_eq(restored.validate().length(), 0)
+  ignore(open.abort())
+}

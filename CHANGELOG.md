@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 - 2026-07-17
+
+- Update executable package metadata and remove ambiguous empty-map warnings for
+  MoonBit 0.10.4 strict checks.
+- Add deterministic committed-state checkpoints through `Engine::snapshot` and
+  `Engine::from_snapshot`; active transactions are excluded by design.
+- Add snapshot recovery coverage and expand the reproducible predicate/WAL
+  workload to 1k, 10k, and 100k keys.
+- Add explicit OSC acceptance gates and documentation for strict toolchain
+  compatibility and persistence adapter boundaries.
+
 ## 0.3.0 - 2026-07-06
 
 - 新增稳定排序的事务快照前缀扫描。

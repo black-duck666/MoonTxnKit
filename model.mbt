@@ -87,6 +87,25 @@ pub(all) struct EngineStats {
 } derive(Debug, Eq)
 
 ///|
+/// A serializable history entry used by `EngineSnapshot`.
+pub(all) struct SnapshotHistory {
+  key : String
+  versions : Array[VersionedValue]
+} derive(Debug, Eq)
+
+///|
+/// Deterministic committed-state checkpoint. It contains no active transaction
+/// handles and therefore has a clear recovery boundary for storage adapters.
+pub(all) struct EngineSnapshot {
+  current_version : Int
+  next_txn_id : Int
+  committed_transactions : Int
+  aborted_transactions : Int
+  histories : Array[SnapshotHistory]
+  wal_records : Array[WalRecord]
+} derive(Debug, Eq)
+
+///|
 pub fn WriteIntent::put(key : String, value : String) -> WriteIntent {
   { key, value: Some(value) }
 }

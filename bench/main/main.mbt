@@ -1,6 +1,5 @@
 ///|
-fn main {
-  let key_count = 10000
+fn run_workload(key_count : Int) -> Unit {
   let engine = @txn.Engine::new()
   let seed = engine.begin()
   for index = 0; index < key_count; index = index + 1 {
@@ -25,15 +24,16 @@ fn main {
 
   let wal = engine.wal()
   let (recovered, recovery) = @txn.Engine::recover(wal)
-  println("keys=\{key_count}")
-  println("seed=" + seed_result.to_json())
-  println("scan_rows=\{rows.length()}")
-  println("scan_first=\{first_key}")
-  println("scan_last=\{last_key}")
-  println("writer=" + writer_result.to_json())
-  println("scanner=" + scanner_result.to_json())
-  println("wal_records=\{wal.length()}")
-  println("recovery=" + recovery.to_json())
-  println("recovered_keys=\{recovered.stats().keys}")
-  println("validation_issues=\{recovered.validate().length()}")
+  println(
+    "workload keys=\{key_count} rows=\{rows.length()} first=\{first_key} last=\{last_key} seed=\{seed_result.to_json()} writer=\{writer_result.to_json()} scanner=\{scanner_result.to_json()} wal_records=\{wal.length()} recovery=\{recovery.to_json()} recovered_keys=\{recovered.stats().keys} validation_issues=\{recovered.validate().length()}",
+  )
+}
+
+///|
+fn main {
+  // The values are portable operation counts; record timing externally with
+  // the exact MoonBit backend, hardware, and command line.
+  for key_count in [1000, 10000, 100000] {
+    run_workload(key_count)
+  }
 }

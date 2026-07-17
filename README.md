@@ -59,3 +59,20 @@ moon run bench/main --target js
 ## License
 
 Apache-2.0
+
+## Strict verification and persistence boundary
+
+```bash
+moon fmt --check
+moon check --deny-warn --target all
+moon info && git diff --exit-code -- '*.mbti'
+moon test --deny-warn --target all
+moon run cmd/main --target js
+moon run bench/main --target js
+```
+
+MoonBit 0.10.4 does not accept `--deny-warn` on `moon fmt` or `moon info`.
+The CI workflow explicitly names those gates and uses the supported strict
+equivalents when required. `Engine::snapshot` captures committed histories and
+logical WAL only; files, databases, distributed locks, and crash-atomicity are
+adapter responsibilities, not claims made by the core library.

@@ -10,6 +10,42 @@ permissions:
   contents: read
 
 jobs:
+  acceptance:
+    name: OSC 2026 acceptance gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup MoonBit
+        uses: hustcer/setup-moonbit@v1
+
+      # 0.10.4 removed --deny-warn from fmt/info. These named compatibility
+      # gates invoke the flag when available and the supported strict form
+      # otherwise, so the workflow remains executable on both toolchains.
+      - name: moon fmt --deny-warn (compatible)
+        run: |
+          if moon fmt --help | grep -q -- '--deny-warn'; then
+            moon fmt --deny-warn
+          else
+            moon fmt --check
+          fi
+
+      - name: moon check --deny-warn
+        run: moon check --deny-warn --target all
+
+      - name: moon info --deny-warn (compatible)
+        run: |
+          if moon info --help | grep -q -- '--deny-warn'; then
+            moon info --deny-warn
+          else
+            moon info
+          fi
+          git diff --exit-code -- '*.mbti'
+
+      - name: moon test --deny-warn
+        run: moon test --deny-warn --target all
+
   moonbit:
     runs-on: ubuntu-latest
     strategy:
@@ -18,19 +54,16 @@ jobs:
         target: [native, js, wasm, wasm-gc]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup MoonBit
         uses: hustcer/setup-moonbit@v1
 
-      - name: Format check
-        run: moon fmt --check
-
       - name: Compile
-        run: moon check --target ${{ matrix.target }}
+        run: moon check --deny-warn --target ${{ matrix.target }}
 
       - name: Test
-        run: moon test --target ${{ matrix.target }}
+        run: moon test --deny-warn --target ${{ matrix.target }}
 
       - name: Run transaction demo
         if: matrix.target == 'native'

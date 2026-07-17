@@ -27,8 +27,8 @@ pub fn Engine::new() -> Engine {
   {
     current_version: 0,
     next_txn_id: 1,
-    histories: {},
-    active_snapshots: {},
+    histories: Map([]),
+    active_snapshots: Map([]),
     committed_transactions: 0,
     aborted_transactions: 0,
     wal_records: [],
@@ -468,6 +468,45 @@ pub fn Transaction::commit(self : Transaction) -> CommitResult {
 ///|
 pub fn Engine::wal(self : Engine) -> Array[WalRecord] {
   self.wal_records.copy()
+}
+
+///|
+/// Captures committed MVCC state for an adapter-owned checkpoint. Active
+/// transactions are deliberately excluded: callers must abort or finish them
+/// before persisting, then start new transactions against the restored engine.
+pub fn Engine::snapshot(self : Engine) -> EngineSnapshot {
+  let histories : Array[SnapshotHistory] = []
+  for key, versions in self.histories {
+    histories.push({ key, versions: versions.copy() })
+  }
+  histories.sort_by(fn(left, right) { left.key.lexical_compare(right.key) })
+  {
+    current_version: self.current_version,
+    next_txn_id: self.next_txn_id,
+    committed_transactions: self.committed_transactions,
+    aborted_transactions: self.aborted_transactions,
+    histories,
+    wal_records: self.wal_records.copy(),
+  }
+}
+
+///|
+/// Rebuilds an engine from an adapter-owned checkpoint. The caller can inspect
+/// `validate()` afterwards and choose its own serialization, encryption, and
+/// distributed-locking policy without adding platform I/O to the core.
+pub fn Engine::from_snapshot(snapshot : EngineSnapshot) -> Engine {
+  let engine = Engine::new()
+  engine.current_version = snapshot.current_version
+  engine.next_txn_id = snapshot.next_txn_id
+  engine.committed_transactions = snapshot.committed_transactions
+  engine.aborted_transactions = snapshot.aborted_transactions
+  for history in snapshot.histories {
+    engine.histories[history.key] = history.versions.copy()
+  }
+  for record in snapshot.wal_records {
+    engine.wal_records.push(record)
+  }
+  engine
 }
 
 ///|

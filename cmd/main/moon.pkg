@@ -2,6 +2,4 @@ import {
   "black-duck666/moontxnkit" @txn,
 }
 
-options(
-  "is-main": true,
-)
+pkgtype(kind: "executable")
